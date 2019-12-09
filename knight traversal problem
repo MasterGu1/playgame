@@ -1,0 +1,1010 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct Node
+{
+    int data;//本次可移动的方向数
+    int pass[8];//标记此路是否走过
+    int ava_vector[8];//本次可移动的方向（0不可，1可）
+    int mov_vector;//本次移动的方向
+    struct Node *X;//父地址
+    struct Node *route[8];//子地址
+} Node;
+
+int x,y,xn,yn,xt,yt,xa,ya;//初位置，当前位置，预测用位置，检测用棋子位置
+int wayx,wayx2,min=10;//棋子移动方向，监测用棋子移动方向，通用最小值初始化
+int a[12][12],ava1[8],ava2[8];//棋盘矩阵，监测用棋子可移动方向，监测用棋子已移动方向
+int i,j,k,t1,t;//通用计数用变量，真次数，游戏次数
+int i1,j1,i2,j2;//通用计数变量保存量
+int count=1;//步数
+int error=0;//错误状态
+int flag1=0;//监测用棋子目前可走的步数
+int stop,test;//测试用变量1，测试用变量2
+
+//基础移动函数
+void chess_nul()
+{
+    xn=xn-2;
+    yn=yn-1;
+}
+void chess_nur()
+{
+    xn=xn-2;
+    yn=yn+1;
+}
+void chess_ndl()
+{
+    xn=xn+2;
+    yn=yn-1;
+}
+void chess_ndr()
+{
+    xn=xn+2;
+    yn=yn+1;
+}
+void chess_wul()
+{
+    xn=xn-1;
+    yn=yn-2;
+}
+void chess_wur()
+{
+    xn=xn-1;
+    yn=yn+2;
+}
+void chess_wdl()
+{
+    xn=xn+1;
+    yn=yn-2;
+}
+void chess_wdr()
+{
+    xn=xn+1;
+    yn=yn+2;
+}
+
+//为根腾空间
+int Root_Creat(Node **T)
+{
+    (*T)=(Node *)malloc(sizeof(Node));
+    i=0;
+    while(i<8)
+    {
+        (*T)->pass[i]=0;
+        i++;
+    }
+    return 0;
+}
+
+//为叉腾空间
+int Node_Creat(Node **T)
+{
+    i=0;
+    while(i<8)
+    {
+        (*T)->pass[i]=0;
+        (*T)->route[i]=(Node *)malloc(sizeof(Node));
+        i++;
+    }
+    return 0;
+}
+
+//为选路统计状态
+int Way_Judge(Node **T)
+{
+    i=0;
+    while(i<8)
+    {
+        (*T)->route[i]=(Node *)malloc(sizeof(Node));
+        i++;
+    }
+    i=0;
+    while(i<8)
+    {
+        (*T)->route[i]->data=0;
+        i++;
+    }
+    i=0;
+    while(i<8)
+    {
+        (*T)->ava_vector[i]=0;
+        i++;
+    }
+    //确定可走的位置
+    if(((xn-2)<=9)&&((yn-1)<=9)&&((xn-2)>=0)&&((yn-1)>=0)&&(a[xn-2][yn-1]==0)&&(*T)->pass[0]==0)
+    {
+        (*T)->ava_vector[0]=1;
+    }
+    if(((xn-2)<=9)&&((yn+1)<=9)&&((xn-2)>=0)&&((yn+1)>=0)&&(a[xn-2][yn+1]==0)&&(*T)->pass[1]==0)
+    {
+        (*T)->ava_vector[1]=1;
+    }
+    if(((xn+2)<=9)&&((yn-1)<=9)&&((xn+2)>=0)&&((yn-1)>=0)&&(a[xn+2][yn-1]==0)&&(*T)->pass[2]==0)
+    {
+        (*T)->ava_vector[2]=1;
+    }
+    if(((xn+2)<=9)&&((yn+1)<=9)&&((xn+2)>=0)&&((yn+1)>=0)&&(a[xn+2][yn+1]==0)&&(*T)->pass[3]==0)
+    {
+        (*T)->ava_vector[3]=1;
+    }
+    if(((xn-1)<=9)&&((yn-2)<=9)&&((xn-1)>=0)&&((yn-2)>=0)&&(a[xn-1][yn-2]==0)&&(*T)->pass[4]==0)
+    {
+        (*T)->ava_vector[4]=1;
+    }
+    if(((xn-1)<=9)&&((yn+2)<=9)&&((xn-1)>=0)&&((yn+2)>=0)&&(a[xn-1][yn+2]==0)&&(*T)->pass[5]==0)
+    {
+        (*T)->ava_vector[5]=1;
+    }
+    if(((xn+1)<=9)&&((yn-2)<=9)&&((xn+1)>=0)&&((yn-2)>=0)&&(a[xn+1][yn-2]==0)&&(*T)->pass[6]==0)
+    {
+        (*T)->ava_vector[6]=1;
+    }
+    if(((xn+1)<=9)&&((yn+2)<=9)&&((xn+1)>=0)&&((yn+2)>=0)&&(a[xn+1][yn+2]==0)&&(*T)->pass[7]==0)
+    {
+        (*T)->ava_vector[7]=1;
+    }
+    //优化选路
+    if((*T)->ava_vector[0]==1)
+    {
+
+        xt=xn-2;
+        yt=yn-1;
+        if(((xt-2)<=9)&&((yt-1)<=9)&&((xt-2)>=0)&&((yt-1)>=0)&&(a[xt-2][yt-1]==0))
+        {
+            (*T)->route[0]->data++;
+        }
+        if(((xt-2)<=9)&&((yt+1)<=9)&&((xt-2)>=0)&&((yt+1)>=0)&&(a[xt-2][yt+1]==0))
+        {
+            (*T)->route[0]->data++;
+        }
+        if(((xt+2)<=9)&&((yt-1)<=9)&&((xt+2)>=0)&&((yt-1)>=0)&&(a[xt+2][yt-1]==0))
+        {
+            (*T)->route[0]->data++;
+        }
+        if(((xt+2)<=9)&&((yt+1)<=9)&&((xt+2)>=0)&&((yt+1)>=0)&&(a[xt+2][yt+1]==0))
+        {
+            (*T)->route[0]->data++;
+        }
+
+        if(((xt-1)<=9)&&((yt-2)<=9)&&((xt-1)>=0)&&((yt-2)>=0)&&(a[xt-1][yt-2]==0))
+        {
+            (*T)->route[0]->data++;
+        }
+        if(((xt-1)<=9)&&((yt+2)<=9)&&((xt-1)>=0)&&((yt+2)>=0)&&(a[xt-1][yt+2]==0))
+        {
+            (*T)->route[0]->data++;
+        }
+        if(((xt+1)<=9)&&((yt-2)<=9)&&((xt+1)>=0)&&((yt-2)>=0)&&(a[xt+1][yt-2]==0))
+        {
+            (*T)->route[0]->data++;
+        }
+        if(((xt+1)<=9)&&((yt+2)<=9)&&((xt+1)>=0)&&((yt+2)>=0)&&(a[xt+1][yt+2]==0))
+        {
+            (*T)->route[0]->data++;
+        }
+    }
+
+    if((*T)->ava_vector[1]==1)
+    {
+        xt=xn-2;
+        yt=yn+1;
+        if(((xt-2)<=9)&&((yt-1)<=9)&&((xt-2)>=0)&&((yt-1)>=0)&&(a[xt-2][yt-1]==0))
+        {
+            (*T)->route[1]->data++;
+        }
+        if(((xt-2)<=9)&&((yt+1)<=9)&&((xt-2)>=0)&&((yt+1)>=0)&&(a[xt-2][yt+1]==0))
+        {
+            (*T)->route[1]->data++;
+        }
+        if(((xt+2)<=9)&&((yt-1)<=9)&&((xt+2)>=0)&&((yt-1)>=0)&&(a[xt+2][yt-1]==0))
+        {
+            (*T)->route[1]->data++;
+        }
+        if(((xt+2)<=9)&&((yt+1)<=9)&&((xt+2)>=0)&&((yt+1)>=0)&&(a[xt+2][yt+1]==0))
+        {
+            (*T)->route[1]->data++;
+        }
+
+        if(((xt-1)<=9)&&((yt-2)<=9)&&((xt-1)>=0)&&((yt-2)>=0)&&(a[xt-1][yt-2]==0))
+        {
+            (*T)->route[1]->data++;
+        }
+        if(((xt-1)<=9)&&((yt+2)<=9)&&((xt-1)>=0)&&((yt+2)>=0)&&(a[xt-1][yt+2]==0))
+        {
+            (*T)->route[1]->data++;
+        }
+        if(((xt+1)<=9)&&((yt-2)<=9)&&((xt+1)>=0)&&((yt-2)>=0)&&(a[xt+1][yt-2]==0))
+        {
+            (*T)->route[1]->data++;
+        }
+        if(((xt+1)<=9)&&((yt+2)<=9)&&((xt+1)>=0)&&((yt+2)>=0)&&(a[xt+1][yt+2]==0))
+        {
+            (*T)->route[1]->data++;
+        }
+    }
+
+    if((*T)->ava_vector[2]==1)
+    {
+        xt=xn+2;
+        yt=yn-1;
+        if(((xt-2)<=9)&&((yt-1)<=9)&&((xt-2)>=0)&&((yt-1)>=0)&&(a[xt-2][yt-1]==0))
+        {
+            (*T)->route[2]->data++;
+        }
+        if(((xt-2)<=9)&&((yt+1)<=9)&&((xt-2)>=0)&&((yt+1)>=0)&&(a[xt-2][yt+1]==0))
+        {
+            (*T)->route[2]->data++;
+        }
+        if(((xt+2)<=9)&&((yt-1)<=9)&&((xt+2)>=0)&&((yt-1)>=0)&&(a[xt+2][yt-1]==0))
+        {
+            (*T)->route[2]->data++;
+        }
+        if(((xt+2)<=9)&&((yt+1)<=9)&&((xt+2)>=0)&&((yt+1)>=0)&&(a[xt+2][yt+1]==0))
+        {
+            (*T)->route[2]->data++;
+        }
+
+        if(((xt-1)<=9)&&((yt-2)<=9)&&((xt-1)>=0)&&((yt-2)>=0)&&(a[xt-1][yt-2]==0))
+        {
+            (*T)->route[2]->data++;
+        }
+        if(((xt-1)<=9)&&((yt+2)<=9)&&((xt-1)>=0)&&((yt+2)>=0)&&(a[xt-1][yt+2]==0))
+        {
+            (*T)->route[2]->data++;
+        }
+        if(((xt+1)<=9)&&((yt-2)<=9)&&((xt+1)>=0)&&((yt-2)>=0)&&(a[xt+1][yt-2]==0))
+        {
+            (*T)->route[2]->data++;
+        }
+        if(((xt+1)<=9)&&((yt+2)<=9)&&((xt+1)>=0)&&((yt+2)>=0)&&(a[xt+1][yt+2]==0))
+        {
+            (*T)->route[2]->data++;
+        }
+    }
+
+    if((*T)->ava_vector[3]==1)
+    {
+        xt=xn+2;
+        yt=yn+1;
+        if(((xt-2)<=9)&&((yt-1)<=9)&&((xt-2)>=0)&&((yt-1)>=0)&&(a[xt-2][yt-1]==0))
+        {
+            (*T)->route[3]->data++;
+        }
+        if(((xt-2)<=9)&&((yt+1)<=9)&&((xt-2)>=0)&&((yt+1)>=0)&&(a[xt-2][yt+1]==0))
+        {
+            (*T)->route[3]->data++;
+        }
+        if(((xt+2)<=9)&&((yt-1)<=9)&&((xt+2)>=0)&&((yt-1)>=0)&&(a[xt+2][yt-1]==0))
+        {
+            (*T)->route[3]->data++;
+        }
+        if(((xt+2)<=9)&&((yt+1)<=9)&&((xt+2)>=0)&&((yt+1)>=0)&&(a[xt+2][yt+1]==0))
+        {
+            (*T)->route[3]->data++;
+        }
+
+        if(((xt-1)<=9)&&((yt-2)<=9)&&((xt-1)>=0)&&((yt-2)>=0)&&(a[xt-1][yt-2]==0))
+        {
+            (*T)->route[3]->data++;
+        }
+        if(((xt-1)<=9)&&((yt+2)<=9)&&((xt-1)>=0)&&((yt+2)>=0)&&(a[xt-1][yt+2]==0))
+        {
+            (*T)->route[3]->data++;
+        }
+        if(((xt+1)<=9)&&((yt-2)<=9)&&((xt+1)>=0)&&((yt-2)>=0)&&(a[xt+1][yt-2]==0))
+        {
+            (*T)->route[3]->data++;
+        }
+        if(((xt+1)<=9)&&((yt+2)<=9)&&((xt+1)>=0)&&((yt+2)>=0)&&(a[xt+1][yt+2]==0))
+        {
+            (*T)->route[3]->data++;
+        }
+    }
+
+    if((*T)->ava_vector[4]==1)
+    {
+        xt=xn-1;
+        yt=yn-2;
+        if(((xt-2)<=9)&&((yt-1)<=9)&&((xt-2)>=0)&&((yt-1)>=0)&&(a[xt-2][yt-1]==0))
+        {
+            (*T)->route[4]->data++;
+        }
+        if(((xt-2)<=9)&&((yt+1)<=9)&&((xt-2)>=0)&&((yt+1)>=0)&&(a[xt-2][yt+1]==0))
+        {
+            (*T)->route[4]->data++;
+        }
+        if(((xt+2)<=9)&&((yt-1)<=9)&&((xt+2)>=0)&&((yt-1)>=0)&&(a[xt+2][yt-1]==0))
+        {
+            (*T)->route[4]->data++;
+        }
+        if(((xt+2)<=9)&&((yt+1)<=9)&&((xt+2)>=0)&&((yt+1)>=0)&&(a[xt+2][yt+1]==0))
+        {
+            (*T)->route[4]->data++;
+        }
+
+        if(((xt-1)<=9)&&((yt-2)<=9)&&((xt-1)>=0)&&((yt-2)>=0)&&(a[xt-1][yt-2]==0))
+        {
+            (*T)->route[4]->data++;
+        }
+        if(((xt-1)<=9)&&((yt+2)<=9)&&((xt-1)>=0)&&((yt+2)>=0)&&(a[xt-1][yt+2]==0))
+        {
+            (*T)->route[4]->data++;
+        }
+        if(((xt+1)<=9)&&((yt-2)<=9)&&((xt+1)>=0)&&((yt-2)>=0)&&(a[xt+1][yt-2]==0))
+        {
+            (*T)->route[4]->data++;
+        }
+        if(((xt+1)<=9)&&((yt+2)<=9)&&((xt+1)>=0)&&((yt+2)>=0)&&(a[xt+1][yt+2]==0))
+        {
+            (*T)->route[4]->data++;
+        }
+    }
+
+    if((*T)->ava_vector[5]==1)
+    {
+        xt=xn-1;
+        yt=yn+2;
+        if(((xt-2)<=9)&&((yt-1)<=9)&&((xt-2)>=0)&&((yt-1)>=0)&&(a[xt-2][yt-1]==0))
+        {
+            (*T)->route[5]->data++;
+        }
+        if(((xt-2)<=9)&&((yt+1)<=9)&&((xt-2)>=0)&&((yt+1)>=0)&&(a[xt-2][yt+1]==0))
+        {
+            (*T)->route[5]->data++;
+        }
+        if(((xt+2)<=9)&&((yt-1)<=9)&&((xt+2)>=0)&&((yt-1)>=0)&&(a[xt+2][yt-1]==0))
+        {
+            (*T)->route[5]->data++;
+        }
+        if(((xt+2)<=9)&&((yt+1)<=9)&&((xt+2)>=0)&&((yt+1)>=0)&&(a[xt+2][yt+1]==0))
+        {
+            (*T)->route[5]->data++;
+        }
+
+        if(((xt-1)<=9)&&((yt-2)<=9)&&((xt-1)>=0)&&((yt-2)>=0)&&(a[xt-1][yt-2]==0))
+        {
+            (*T)->route[5]->data++;
+        }
+        if(((xt-1)<=9)&&((yt+2)<=9)&&((xt-1)>=0)&&((yt+2)>=0)&&(a[xt-1][yt+2]==0))
+        {
+            (*T)->route[5]->data++;
+        }
+        if(((xt+1)<=9)&&((yt-2)<=9)&&((xt+1)>=0)&&((yt-2)>=0)&&(a[xt+1][yt-2]==0))
+        {
+            (*T)->route[5]->data++;
+        }
+        if(((xt+1)<=9)&&((yt+2)<=9)&&((xt+1)>=0)&&((yt+2)>=0)&&(a[xt+1][yt+2]==0))
+        {
+            (*T)->route[5]->data++;
+        }
+    }
+
+    if((*T)->ava_vector[6]==1)
+    {
+        xt=xn+1;
+        yt=yn-2;
+        if(((xt-2)<=9)&&((yt-1)<=9)&&((xt-2)>=0)&&((yt-1)>=0)&&(a[xt-2][yt-1]==0))
+        {
+            (*T)->route[6]->data++;
+        }
+        if(((xt-2)<=9)&&((yt+1)<=9)&&((xt-2)>=0)&&((yt+1)>=0)&&(a[xt-2][yt+1]==0))
+        {
+            (*T)->route[6]->data++;
+        }
+        if(((xt+2)<=9)&&((yt-1)<=9)&&((xt+2)>=0)&&((yt-1)>=0)&&(a[xt+2][yt-1]==0))
+        {
+            (*T)->route[6]->data++;
+        }
+        if(((xt+2)<=9)&&((yt+1)<=9)&&((xt+2)>=0)&&((yt+1)>=0)&&(a[xt+2][yt+1]==0))
+        {
+            (*T)->route[6]->data++;
+        }
+
+        if(((xt-1)<=9)&&((yt-2)<=9)&&((xt-1)>=0)&&((yt-2)>=0)&&(a[xt-1][yt-2]==0))
+        {
+            (*T)->route[6]->data++;
+        }
+        if(((xt-1)<=9)&&((yt+2)<=9)&&((xt-1)>=0)&&((yt+2)>=0)&&(a[xt-1][yt+2]==0))
+        {
+            (*T)->route[6]->data++;
+        }
+        if(((xt+1)<=9)&&((yt-2)<=9)&&((xt+1)>=0)&&((yt-2)>=0)&&(a[xt+1][yt-2]==0))
+        {
+            (*T)->route[6]->data++;
+        }
+        if(((xt+1)<=9)&&((yt+2)<=9)&&((xt+1)>=0)&&((yt+2)>=0)&&(a[xt+1][yt+2]==0))
+        {
+            (*T)->route[6]->data++;
+        }
+    }
+
+    if((*T)->ava_vector[7]==1)
+    {
+        xt=xn+1;
+        yt=yn+2;
+        if(((xt-2)<=9)&&((yt-1)<=9)&&((xt-2)>=0)&&((yt-1)>=0)&&(a[xt-2][yt-1]==0))
+        {
+            (*T)->route[7]->data++;
+        }
+        if(((xt-2)<=9)&&((yt+1)<=9)&&((xt-2)>=0)&&((yt+1)>=0)&&(a[xt-2][yt+1]==0))
+        {
+            (*T)->route[7]->data++;
+        }
+        if(((xt+2)<=9)&&((yt-1)<=9)&&((xt+2)>=0)&&((yt-1)>=0)&&(a[xt+2][yt-1]==0))
+        {
+            (*T)->route[7]->data++;
+        }
+        if(((xt+2)<=9)&&((yt+1)<=9)&&((xt+2)>=0)&&((yt+1)>=0)&&(a[xt+2][yt+1]==0))
+        {
+            (*T)->route[7]->data++;
+        }
+
+        if(((xt-1)<=9)&&((yt-2)<=9)&&((xt-1)>=0)&&((yt-2)>=0)&&(a[xt-1][yt-2]==0))
+        {
+            (*T)->route[7]->data++;
+        }
+        if(((xt-1)<=9)&&((yt+2)<=9)&&((xt-1)>=0)&&((yt+2)>=0)&&(a[xt-1][yt+2]==0))
+        {
+            (*T)->route[7]->data++;
+        }
+        if(((xt+1)<=9)&&((yt-2)<=9)&&((xt+1)>=0)&&((yt-2)>=0)&&(a[xt+1][yt-2]==0))
+        {
+            (*T)->route[7]->data++;
+        }
+        if(((xt+1)<=9)&&((yt+2)<=9)&&((xt+1)>=0)&&((yt+2)>=0)&&(a[xt+1][yt+2]==0))
+        {
+            (*T)->route[7]->data++;
+        }
+    }
+    return 0;
+}
+
+//选路
+int Way_chose(Node **T)
+{
+    if(error==0)
+    {
+        i=0;
+        min=10;
+        while(i<8)
+        {
+            if((*T)->route[i]->data<min&&(*T)->route[i]->data!=0)
+            {
+                (*T)->mov_vector=i;
+                min=(*T)->route[i]->data;
+            }
+            i++;
+        }
+        if((*T)->route[0]->data==0&&(*T)->route[1]->data==0&&(*T)->route[2]->data==0&&(*T)->route[3]->data==0&&(*T)->route[4]->data==0&&(*T)->route[5]->data==0&&(*T)->route[6]->data==0&&(*T)->route[7]->data==0)
+        {
+            if((*T)->ava_vector[0]==1)
+            {
+                (*T)->mov_vector=0;
+            }
+            if((*T)->ava_vector[1]==1)
+            {
+                (*T)->mov_vector=1;
+            }
+            if((*T)->ava_vector[2]==1)
+            {
+                (*T)->mov_vector=2;
+            }
+            if((*T)->ava_vector[3]==1)
+            {
+                (*T)->mov_vector=3;
+            }
+            if((*T)->ava_vector[4]==1)
+            {
+                (*T)->mov_vector=4;
+            }
+            if((*T)->ava_vector[5]==1)
+            {
+                (*T)->mov_vector=5;
+            }
+            if((*T)->ava_vector[6]==1)
+            {
+                (*T)->mov_vector=6;
+            }
+            if((*T)->ava_vector[7]==1)
+            {
+                (*T)->mov_vector=7;
+            }
+        }
+    }
+    return 0;
+}
+
+//棋子前进移动函数
+int Chess_Move_1(Node **T)
+{
+    wayx=(*T)->mov_vector;
+    (*T)->pass[wayx]=1;
+    if(wayx==0)
+    {
+        chess_nul();
+    }
+
+    if(wayx==1)
+    {
+        chess_nur();
+    }
+
+    if(wayx==2)
+    {
+        chess_ndl();
+    }
+
+    if(wayx==3)
+    {
+        chess_ndr();
+    }
+
+    if(wayx==4)
+    {
+        chess_wul();
+    }
+
+    if(wayx==5)
+    {
+        chess_wur();
+    }
+
+    if(wayx==6)
+    {
+        chess_wdl();
+    }
+
+    if(wayx==7)
+    {
+        chess_wdr();
+    }
+    a[xn][yn]=count;
+    count++;
+    return 0;
+}
+//棋子后退移动函数
+int Chess_Move_2(Node **T)
+{
+    wayx=(*T)->mov_vector;
+    t--;
+    t--;
+    if(wayx==0)
+    {
+        chess_ndr();
+    }
+    if(wayx==1)
+    {
+        chess_ndl();
+    }
+    if(wayx==2)
+    {
+        chess_nur();
+    }
+    if(wayx==3)
+    {
+        chess_nul();
+    }
+    if(wayx==4)
+    {
+        chess_wdr();
+    }
+    if(wayx==5)
+    {
+        chess_wdl();
+    }
+    if(wayx==6)
+    {
+        chess_wur();
+    }
+    if(wayx==7)
+    {
+        chess_wul();
+    }
+    count--;
+    return 0;
+}
+
+//重设结的地址
+int Node_Reset(Node **T)
+{
+    if(error==0)
+    {
+        (*T)->route[wayx]->X=*T;
+        *T=(*T)->route[wayx];
+    }
+    else
+    {
+        a[xn][yn]=0;
+        /////路线堵住
+        *T=(*T)->X;
+    }
+    return 0;
+}
+//错误类型1判断（无路可走）
+int Error1_Test(Node **T)
+{
+    if((*T)->ava_vector[0]==0&&(*T)->ava_vector[1]==0&&(*T)->ava_vector[2]==0&&(*T)->ava_vector[3]==0&&(*T)->ava_vector[4]==0&&(*T)->ava_vector[5]==0&&(*T)->ava_vector[6]==0&&(*T)->ava_vector[7]==0)
+    {
+        error=1;
+    }
+    return 0;
+}
+//错误类型2判断（头尾不连）
+int Error2_Test(Node **T)
+{
+    if(t==62 )
+    {
+        i=0;
+        j=0;
+        while(i<12)
+        {
+            while(j<12)
+            {
+                if(a[i][j]==0)
+                {
+                    i1=i;
+                    j1=j;
+                }
+                j++;
+            }
+            j=0;
+            i++;
+        }
+        if(a[i1+2][j1+1]!=1&&a[i1-2][j1+1]!=1&&a[i1+2][j1-1]!=1&&a[i1-2][j1-1]!=1&&a[i1+1][j1+2]!=1&&a[i1-1][j1+2]!=1&&a[i1+1][j1-2]!=1&&a[i1-1][j1-2]!=1)
+        {
+            error=2;
+        }
+    }
+    printf("error=%d\n",error);
+    return 0;
+}
+//错误状态重置
+int Error1_Reset()
+{
+    error=0;
+    return 0;
+}
+//计算加速函数（舍弃没有希望的线路）
+int Acc1()
+{
+    wayx2=8;
+    printf("a[xa][ya]=%d\n",a[xa][ya]);
+    printf("a[xa+1][ya+2]=%d\n",a[xa+1][ya+2]);
+    i=0;
+    k=0;
+    while(i<8)
+    {
+        ava2[i]=0;
+        i++;
+    }
+    while(k<59-t)
+    {
+        i=0;
+        while(i<8)
+        {
+            ava1[i]=0;
+            i++;
+        }
+        //确定可走的位置
+        if(((xa-2)<=9)&&+((ya-1)<=9)&&((xa-2)>=0)&&((ya-1)>=0)&&((a[xa-2][ya-1]==1)||(a[xa-2][ya-1]==0)))
+        {
+            ava1[0]=1;
+        }
+        if(((xa-2)<=9)&&((ya+1)<=9)&&((xa-2)>=0)&&((ya+1)>=0)&&((a[xa-2][ya+1]==1)||(a[xa-2][ya+1]==0)))
+        {
+            ava1[1]=1;
+        }
+        if(((xa+2)<=9)&&((ya-1)<=9)&&((xa+2)>=0)&&((ya-1)>=0)&&((a[xa+2][ya-1]==1)||(a[xa+2][ya-1]==0)))
+        {
+            ava1[2]=1;
+        }
+        if(((xa+2)<=9)&&((ya+1)<=9)&&((xa+2)>=0)&&((ya+1)>=0)&&((a[xa+2][ya+1]==1)||(a[xa+2][ya+1]==0)))
+        {
+            ava1[3]=1;
+        }
+        if(((xa-1)<=9)&&((ya-2)<=9)&&((xa-1)>=0)&&((ya-2)>=0)&&((a[xa-1][ya-2]==1)||(a[xa-1][ya-2]==0)))
+        {
+            ava1[4]=1;
+        }
+        if(((xa-1)<=9)&&((ya+2)<=9)&&((xa-1)>=0)&&((ya+2)>=0)&&((a[xa-1][ya+2]==1)||(a[xa-1][ya+2]==0)))
+        {
+            ava1[5]=1;
+        }
+        if(((xa+1)<=9)&&((ya-2)<=9)&&((xa+1)>=0)&&((ya-2)>=0)&&((a[xa+1][ya-2]==1)||(a[xa+1][ya-2]==0)))
+        {
+            ava1[6]=1;
+        }
+        if(((xa+1)<=9)&&((ya+2)<=9)&&((xa+1)>=0)&&((ya+2)>=0)&&((a[xa+1][ya+2]==1)||(a[xa+1][ya+2]==0)))
+        {
+            ava1[7]=1;
+            printf("?\n");
+        }
+        i=0;
+                while(i<8)
+                {
+                    printf("ava1[%d]=%d\n",i,ava1[i]);
+                    i++;
+                }
+        //判断是否死结
+        i=0;
+        flag1=0;
+        while(i<8)
+        {
+            if(ava1[i]!=0)
+            {
+
+                flag1++;
+                i2=i;
+            }
+            i++;
+        }
+        if(k==0)
+        {
+            printf("flag1=%d\n",flag1);
+            if(flag1==0)
+            {
+                error=3;
+                printf("accerror=%d\n",error);
+                break;
+            }
+            if(flag1==1)
+            {
+                if(ava1[0]==1)
+                {
+                    xa=xa-2;
+                    ya=ya-1;
+                    wayx2=0;
+                }
+
+                if(ava1[1]==1)
+                {
+                    xa=xa-2;
+                    ya=ya+1;
+                    wayx2=1;
+                }
+
+                if(ava1[2]==1)
+                {
+                    xa=xa+2;
+                    ya=ya-1;
+                    wayx2=2;
+                }
+
+                if(ava1[3]==1)
+                {
+                    xa=xa+2;
+                    ya=ya+1;
+                    wayx2=3;
+                }
+
+                if(ava1[4]==1)
+                {
+                    xa=xa-1;
+                    ya=ya-2;
+                    wayx2=4;
+                }
+
+                if(ava1[5]==1)
+                {
+                    xa=xa-1;
+                    ya=ya+2;
+                    wayx2=5;
+                }
+
+                if(ava1[6]==1)
+                {
+                    xa=xa+1;
+                    ya=ya-2;
+                    wayx2=6;
+                }
+
+                if(ava1[7]==1)
+                {
+                    xa=xa+1;
+                    ya=ya+2;
+                    wayx2=7;
+                }
+            }
+        }
+        if(k>0)
+        {
+            if(flag1<2)
+            {
+                error=4;
+                break;
+            }
+            if(flag1==2)
+            {
+                if(ava1[0]==1&&ava2[3]!=1)
+                {
+                    xa=xa-2;
+                    ya=ya-1;
+                    wayx2=0;
+                }
+
+                if(ava1[1]==1&&ava2[2]!=1)
+                {
+                    xa=xa-2;
+                    ya=ya+1;
+                    wayx2=1;
+                }
+
+                if(ava1[2]==1&&ava2[1]!=1)
+                {
+                    xa=xa+2;
+                    ya=ya-1;
+                    wayx2=2;
+                }
+
+                if(ava1[3]==1&&ava2[0]!=1)
+                {
+                    xa=xa+2;
+                    ya=ya+1;
+                    wayx2=3;
+                }
+
+                if(ava1[4]==1&&ava2[7]!=1)
+                {
+                    xa=xa-1;
+                    ya=ya-2;
+                    wayx2=4;
+                }
+
+                if(ava1[5]==1&&ava2[6]!=1)
+                {
+                    xa=xa-1;
+                    ya=ya+2;
+                    wayx2=5;
+                }
+
+                if(ava1[6]==1&&ava2[5]!=1)
+                {
+                    xa=xa+1;
+                    ya=ya-2;
+                    wayx2=6;
+                }
+
+                if(ava1[7]==1&&ava2[4]!=1)
+                {
+                    xa=xa+1;
+                    ya=ya+2;
+                    wayx2=7;
+                }
+            }
+        }
+        if(wayx2>=0&&wayx2<=7)
+        {
+            ava2[wayx2]=1;
+            i=0;
+            while(i<8)
+            {
+                if(i!=wayx2)
+                {
+                    ava2[i]=0;
+                }
+                i++;
+            }
+        }
+        k++;
+    }
+    return 0;
+}
+
+//打印
+int print()
+{
+    i=0;
+    j=0;
+    while(i<12)
+    {
+        while(j<12)
+        {
+            printf("%3d",a[i][j]);
+            j++;
+        }
+        printf("\n");
+        j=0;
+        i++;
+    }
+}
+
+//主函数
+int main()
+{
+    test=5;
+    Node *T;
+    Root_Creat(&T);
+    //初始化循环次数
+    t=0;
+    t1=0;
+    //初始化矩阵
+    i=0;
+    j=0;
+    while(i<12)
+    {
+        while(j<12)
+        {
+            a[i][j]=-1;
+            j++;
+        }
+        j=0;
+        i++;
+    }
+    i=2;
+    j=2;
+    while(i<10)
+    {
+        while(j<10)
+        {
+            a[i][j]=0;
+            j++;
+        }
+        j=2;
+        i++;
+    }
+    //打印最初棋盘
+    i=0;
+    j=0;
+    while(i<12)
+    {
+        while(j<12)
+        {
+            printf("%3d",a[i][j]);
+            j++;
+        }
+        printf("\n");
+        j=0;
+        i++;
+    }
+    //输入第一个棋子位置
+    scanf("%d %d",&x,&y);
+    //转为实际位置
+    x=x+1;
+    y=y+1;
+    xn=x;
+    yn=y;
+    //第一次赋值
+    a[x][y]=count;
+    count++;
+    //开始主循环
+    while(a[xn][yn]!=64)
+    {
+        if((*T).pass[0]==0&&(*T).pass[1]==0&&(*T).pass[2]==0&&(*T).pass[3]==0&&(*T).pass[4]==0&&(*T).pass[5]==0&&(*T).pass[6]==0&&(*T).pass[7]==0)
+        {
+            Node_Creat(&T);
+        }
+        Way_Judge(&T);
+        Error1_Test(&T);
+        Error2_Test(&T);
+        xa=x;
+        ya=y;
+        if(t>0)
+        {
+            Acc1();
+        }
+        Way_chose(&T);
+        if(error==0)
+        {
+            Chess_Move_1(&T);
+        }
+        Node_Reset(&T);
+        if(error!=0)
+        {
+            Chess_Move_2(&T);
+        }
+        ////////打印状态
+        printf("a=%d\n",a[xn][yn]);
+        printf("t+2=%d\n",t+2);
+        printf("t1+2=%d\n",t1+2);
+        print();
+        Error1_Reset();
+        if(t1==62)
+        {
+
+        }
+        t++;
+        t1++;
+    }
+    printf("!\n");
+    return 0;
+}
