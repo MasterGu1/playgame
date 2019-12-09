@@ -1,0 +1,16 @@
+A solve of  knight traversal problem
+use 12*12 matrix
+the inner 8*8 is the chessboard
+two versions
+
+the version without ui:
+shuxuexi\main.exe
+type in the initial coordinate to begin
+the program would calculate and then show the step from 1 to 64
+
+the version with ui:
+shuxuexi\chessknight\Bin\Game.exe
+click one of the chessboard lattice as the initial lattice to begin
+the program would calculate
+when the chess stop moving
+press 0 to show the process of traversal
